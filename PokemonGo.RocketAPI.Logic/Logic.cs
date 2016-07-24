@@ -38,6 +38,7 @@ namespace PokemonGo.RocketAPI.Logic
                 try
                 {                    
                     await _client.SetServer();
+                    Logger.PushFormInfo("wipe", "");
                     await _client.GetProfile();
                     await EvolveAllPokemonWithEnoughCandy();
                     await TransferDuplicatePokemon(true);
