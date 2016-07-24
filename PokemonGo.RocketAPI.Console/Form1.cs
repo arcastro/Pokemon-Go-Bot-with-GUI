@@ -136,12 +136,12 @@ namespace PokemonGo.RocketAPI.GUI
                     break;
                 case "wipe":
                     StarDust = 0;
-                    ExpGained = 0;
+                    //ExpGained = 0;
                     Invoke(new Action(() =>
                     {
                         gameForm.charInfo.Text = "";
                         gameForm.sdBox.Text = "0";
-                        gameForm.xpBox.Text = "0";
+                        //gameForm.xpBox.Text = "0";
                     }));
                     break;
                 case "nextLat":
