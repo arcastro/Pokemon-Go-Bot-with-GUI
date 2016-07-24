@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using AllEnum;
 
-namespace PokemonGo.RocketAPI.Console
+namespace PokemonGo.RocketAPI.GUI
 {
     public class Settings : ISettings
     {
@@ -25,7 +25,9 @@ namespace PokemonGo.RocketAPI.Console
                 return new[]
                 {
                     new KeyValuePair<ItemId, int>(ItemId.ItemPokeBall, 50),
-                    new KeyValuePair<ItemId, int>(ItemId.ItemGreatBall, 50)
+                    new KeyValuePair<ItemId, int>(ItemId.ItemGreatBall, 50),
+                     new KeyValuePair<ItemId, int>(ItemId.ItemRevive, 50),
+                     new KeyValuePair<ItemId, int>(ItemId.ItemPotion, 30),
                 };
             }
 

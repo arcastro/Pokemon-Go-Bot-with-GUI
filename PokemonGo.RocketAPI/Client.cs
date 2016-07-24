@@ -21,8 +21,8 @@ namespace PokemonGo.RocketAPI
         private string _apiUrl;
         private Request.Types.UnknownAuth _unknownAuth;
 
-        private double _currentLat;
-        private double _currentLng;
+        public double _currentLat;
+        public double _currentLng;
 
         public Client(ISettings settings)
         {
@@ -76,22 +76,51 @@ namespace PokemonGo.RocketAPI
 
         public async Task<PlayerUpdateResponse> UpdatePlayerLocation(double lat, double lng)
         {
-            this.SetCoordinates(lat, lng);
-            var customRequest = new Request.Types.PlayerUpdateProto()
+            double cLat = _currentLat;
+            double cLng = _currentLng;
+            PlayerUpdateResponse updateResponse = null;
+            do
             {
-                Lat = Utils.FloatAsUlong(_currentLat),
-                Lng = Utils.FloatAsUlong(_currentLng)
-            };
-
-            var updateRequest = RequestBuilder.GetRequest(_unknownAuth, _currentLat, _currentLng, 10,
-                new Request.Types.Requests()
+                this.SetCoordinates(lat, lng);
+                Random r = new Random();
+                var nextLat = _currentLat;
+                var nextLng = _currentLng;
+                bool delayed = false;
+                if (Math.Abs(nextLat - cLat) > 0.0001) //around 11 meters
                 {
-                    Type = (int)RequestType.PLAYER_UPDATE,
-                    Message = customRequest.ToByteString()
-                });
-            var updateResponse =
-                await
-                    _httpClient.PostProtoPayload<Request, PlayerUpdateResponse>($"https://{_apiUrl}/rpc", updateRequest);
+                    nextLat = cLat + ((cLat > lat) ? - 0.0001 : 0.0001);
+                    delayed = true;
+                    await Task.Delay(3000);
+                }
+                if (Math.Abs(nextLng - cLng) > 0.00007)
+                {
+                    nextLng = cLng + ((cLng > lng) ? -0.00007 : 0.00007);
+                    if (!delayed)
+                        await Task.Delay(3000);
+                }
+                nextLat = nextLat + r.NextDouble() * 0.0000005; //0.5m
+                nextLng = nextLng + r.NextDouble() * 0.0000001;
+
+                this.SetCoordinates(nextLat, nextLng);
+
+                var customRequest = new Request.Types.PlayerUpdateProto()
+                {
+                    Lat = Utils.FloatAsUlong(nextLat),
+                    Lng = Utils.FloatAsUlong(nextLng)
+                };
+                Logger.PushFormInfo("nextLat", nextLat.ToString());
+                Logger.PushFormInfo("nextLng", nextLng.ToString());
+                var updateRequest = RequestBuilder.GetRequest(_unknownAuth, _currentLat, _currentLng, 10 + r.NextDouble() * 75,
+                    new Request.Types.Requests()
+                    {
+                        Type = (int)RequestType.PLAYER_UPDATE,
+                        Message = customRequest.ToByteString()
+                    });
+                updateResponse =
+                    await
+                        _httpClient.PostProtoPayload<Request, PlayerUpdateResponse>($"https://{_apiUrl}/rpc", updateRequest);
+                cLat = nextLat; cLng = nextLng;
+            } while (Math.Abs(_currentLat - lat) > 0.00001 || Math.Abs(_currentLng - lng) > 0.00001); //around 1 meter
             return updateResponse;
         }
 
@@ -115,6 +144,16 @@ namespace PokemonGo.RocketAPI
         {
             var profileRequest = RequestBuilder.GetInitialRequest(_accessToken, _authType, _currentLat, _currentLng, 10,
                 new Request.Types.Requests() { Type = (int)RequestType.GET_PLAYER });
+            var profile = await _httpClient.PostProtoPayload<Request, GetPlayerResponse>($"https://{_apiUrl}/rpc", profileRequest);
+            Logger.Write($"Player name: {profile.Profile.Username}", colorName: "Red");
+            Logger.Write($"Player team: {profile.Profile.Team}", colorName: "Red");
+            Logger.PushFormInfo("profileInfo", $"Name: {profile.Profile.Username}");
+            Logger.PushFormInfo("profileInfo", $"Team: {profile.Profile.Team}");
+            Logger.PushFormInfo("profileInfo", $"Stardust: {profile.Profile.Currency[1].Amount}");
+            Logger.PushFormInfo("sdGained", $"{profile.Profile.Currency[1].Amount}");
+            Logger.PushFormInfo("profileInfo", $"Coins: {profile.Profile.Currency[0].Amount}");
+            Logger.PushFormInfo("nextLat", _currentLat.ToString());
+            Logger.PushFormInfo("nextLng", _currentLng.ToString());
             return await _httpClient.PostProtoPayload<Request, GetPlayerResponse>($"https://{_apiUrl}/rpc", profileRequest);
         }
 
@@ -254,19 +293,22 @@ namespace PokemonGo.RocketAPI
         public async Task<CatchPokemonResponse> CatchPokemon(ulong encounterId, string spawnPointGuid, double pokemonLat,
             double pokemonLng, MiscEnums.Item pokeball)
         {
-
+            Random r = new Random();
+            int i = r.Next(10);
+            var rect = 1.950 + r.NextDouble() * 0.05;
+            var spin = 0.85 + r.NextDouble() * 0.15;
             var customRequest = new Request.Types.CatchPokemonRequest()
             {
                 EncounterId = encounterId,
                 Pokeball = (int)pokeball,
                 SpawnPointGuid = spawnPointGuid,
                 HitPokemon = 1,
-                NormalizedReticleSize = Utils.FloatAsUlong(1.950),
-                SpinModifier = Utils.FloatAsUlong(1),
+                NormalizedReticleSize = Utils.FloatAsUlong(rect),
+                SpinModifier = Utils.FloatAsUlong(spin),
                 NormalizedHitPosition = Utils.FloatAsUlong(1)
             };
 
-            var catchPokemonRequest = RequestBuilder.GetRequest(_unknownAuth, _currentLat, _currentLng, 30,
+            var catchPokemonRequest = RequestBuilder.GetRequest(_unknownAuth, _currentLat, _currentLng, 20 + r.NextDouble() * 76,
                 new Request.Types.Requests()
                 {
                     Type = (int)RequestType.CATCH_POKEMON,

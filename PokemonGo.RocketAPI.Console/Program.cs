@@ -1,31 +1,19 @@
 ﻿using System;
 using System.Threading.Tasks;
 using PokemonGo.RocketAPI.Exceptions;
+using System.Windows.Forms;
 
-namespace PokemonGo.RocketAPI.Console
+namespace PokemonGo.RocketAPI.GUI
 {
     class Program
     {
-        static void Main(string[] args)
-        {
-            Logger.SetLogger(new Logging.ConsoleLogger(LogLevel.Info));
 
-            Task.Run(() =>
-            {
-                try
-                {
-                    new Logic.Logic(new Settings()).Execute();
-                }
-                catch (PtcOfflineException)
-                {
-                    Logger.Write("PTC Servers are probably down OR your credentials are wrong. Try google", LogLevel.Error);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Write($"Unhandled exception: {ex}", LogLevel.Error);
-                }
-            });
-             System.Console.ReadLine();
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new Form1());
         }
     }
 }

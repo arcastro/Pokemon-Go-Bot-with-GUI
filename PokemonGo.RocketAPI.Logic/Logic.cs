@@ -36,12 +36,13 @@ namespace PokemonGo.RocketAPI.Logic
             while (true)
             {
                 try
-                {
+                {                    
                     await _client.SetServer();
+                    await _client.GetProfile();
                     await EvolveAllPokemonWithEnoughCandy();
                     await TransferDuplicatePokemon(true);
                     await RecycleItems();
-                    await RepeatAction(10, async () => await ExecuteFarmingPokestopsAndPokemons(_client));
+                    await RepeatAction(25, async () => await ExecuteFarmingPokestopsAndPokemons(_client));
 
                     /*
                 * Example calls below
@@ -56,6 +57,7 @@ namespace PokemonGo.RocketAPI.Logic
                 catch (Exception ex)
                 {
                     Logger.Write($"Exception: {ex}", LogLevel.Error);
+                    Logger.PushFormInfo("wipe", "");
                 }
 
                 await Task.Delay(10000);
@@ -74,17 +76,22 @@ namespace PokemonGo.RocketAPI.Logic
 
             var pokeStops = mapObjects.MapCells.SelectMany(i => i.Forts).Where(i => i.Type == FortType.Checkpoint && i.CooldownCompleteTimestampMs < DateTime.UtcNow.ToUnixTime());
 
-            foreach (var pokeStop in pokeStops)
+            var orderedPs = pokeStops.OrderBy(x => Math.Pow(Math.Pow((x.Longitude - _client._currentLng), 2) + Math.Pow((x.Latitude - _client._currentLat), 2), 0.5));
+
+            foreach (var pokeStop in orderedPs)
             {
-                var update = await client.UpdatePlayerLocation(pokeStop.Latitude, pokeStop.Longitude);
-                //var fortInfo = await client.GetFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);
-                var fortSearch = await client.SearchFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);
-
-                Logger.Write($"Farmed XP: {fortSearch.ExperienceAwarded}, Gems: { fortSearch.GemsAwarded}, Eggs: {fortSearch.PokemonDataEgg} Items: {StringUtils.GetSummedFriendlyNameOfItemAwardList(fortSearch.ItemsAwarded)}", LogLevel.Info);
-
-                await Task.Delay(15000);
-                await ExecuteCatchAllNearbyPokemons(client);
+                Logger.PushMapObject("ps", pokeStop.LureInfo?.LureExpiresTimestampMs > DateTime.UtcNow.ToUnixTime() ? "lured" : "normal", pokeStop.Latitude, pokeStop.Longitude, pokeStop.Id);
             }
+
+            var closestPS = orderedPs.First();
+            var update = await client.UpdatePlayerLocation(closestPS.Latitude, closestPS.Longitude);
+            //var fortInfo = await client.GetFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);
+            var fortSearch = await client.SearchFort(closestPS.Id, closestPS.Latitude, closestPS.Longitude);
+            Logger.Write($"Farmed XP: {fortSearch.ExperienceAwarded}, Gems: { fortSearch.GemsAwarded}, Eggs: {fortSearch.PokemonDataEgg} Items: {StringUtils.GetSummedFriendlyNameOfItemAwardList(fortSearch.ItemsAwarded)}", LogLevel.Info, "LightBlue");
+            Logger.PushFormInfo("xpGained", fortSearch.ExperienceAwarded.ToString());
+            await Task.Delay(3000);
+            await ExecuteCatchAllNearbyPokemons(client);
+            
         }
 
         private async Task ExecuteCatchAllNearbyPokemons(Client client)
@@ -93,9 +100,17 @@ namespace PokemonGo.RocketAPI.Logic
 
             var pokemons = mapObjects.MapCells.SelectMany(i => i.CatchablePokemons);
 
-            foreach (var pokemon in pokemons)
+            var orderedPokemons = pokemons.OrderBy(x => Math.Pow(Math.Pow((x.Longitude - _client._currentLng), 2) + Math.Pow((x.Latitude - _client._currentLat), 2), 0.5));
+
+            foreach (var pokemon in orderedPokemons)
+            {
+                Logger.PushMapObject("pm", pokemon.PokemonId.ToString(), pokemon.Latitude, pokemon.Longitude, pokemon.EncounterId.ToString());
+            }
+
+            foreach (var pokemon in orderedPokemons)
             {
                 var update = await client.UpdatePlayerLocation(pokemon.Latitude, pokemon.Longitude);
+
                 var encounterPokemonResponse = await client.EncounterPokemon(pokemon.EncounterId, pokemon.SpawnpointId);
                 var pokemonCP = encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp;
                 var pokeball = await GetBestBall(pokemonCP);
@@ -114,8 +129,17 @@ namespace PokemonGo.RocketAPI.Logic
                 }
                 while (caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchMissed);
 
-                Logger.Write(caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess ? $"We caught a {pokemon.PokemonId} with CP {encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp} using a {pokeball}" : $"{pokemon.PokemonId} with CP {encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp} got away while using a {pokeball}..", LogLevel.Info);
-                await Task.Delay(15000);
+                var caught = caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess;
+
+                Logger.Write(caught ? $"We caught a {pokemon.PokemonId} with CP {encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp} using a {pokeball}, xp: {caughtPokemonResponse.Scores.Xp?.Sum()}" : $"{pokemon.PokemonId} with CP {encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp} got away while using a {pokeball}...", LogLevel.Info, caught ? "Green" : "Yellow");
+                if (caught)
+                {
+                    Logger.PushFormInfo("xpGained", caughtPokemonResponse.Scores.Xp?.Sum().ToString());
+                    Logger.PushFormInfo("sdGained", caughtPokemonResponse.Scores.Stardust?.Sum().ToString());
+                }
+                Logger.PushMapObject("pm_rm", pokemon.PokemonId.ToString(), pokemon.Latitude, pokemon.Longitude, pokemon.EncounterId.ToString());
+
+                await Task.Delay(5000);
             }
         }
         
@@ -127,9 +151,12 @@ namespace PokemonGo.RocketAPI.Logic
                 var evolvePokemonOutProto = await _client.EvolvePokemon((ulong)pokemon.Id);
 
                 if (evolvePokemonOutProto.Result == EvolvePokemonOut.Types.EvolvePokemonStatus.PokemonEvolvedSuccess)
-                    Logger.Write($"Evolved {pokemon.PokemonId} successfully for {evolvePokemonOutProto.ExpAwarded}xp", LogLevel.Info);
+                {
+                    Logger.Write($"Evolved {pokemon.PokemonId} successfully for {evolvePokemonOutProto.ExpAwarded}xp", LogLevel.Info, "Cyan");
+                    Logger.PushFormInfo("xpGained", evolvePokemonOutProto.ExpAwarded.ToString());
+                }
                 else
-                        Logger.Write($"Failed to evolve {pokemon.PokemonId}. EvolvePokemonOutProto.Result was {evolvePokemonOutProto.Result}, stopping evolving {pokemon.PokemonId}", LogLevel.Info);
+                    Logger.Write($"Failed to evolve {pokemon.PokemonId}. EvolvePokemonOutProto.Result was {evolvePokemonOutProto.Result}, stopping evolving {pokemon.PokemonId}", LogLevel.Info, "Red");
                     
 
                 await Task.Delay(3000);
@@ -143,7 +170,7 @@ namespace PokemonGo.RocketAPI.Logic
             foreach (var duplicatePokemon in duplicatePokemons)
             {
                 var transfer = await _client.TransferPokemon(duplicatePokemon.Id);
-                Logger.Write($"Transfer {duplicatePokemon.PokemonId} with {duplicatePokemon.Cp} CP", LogLevel.Info);
+                Logger.Write($"Transfer {duplicatePokemon.PokemonId} with {duplicatePokemon.Cp} CP", LogLevel.Info, "Magenta");
                 await Task.Delay(500);
             }
         }

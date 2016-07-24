@@ -24,12 +24,31 @@ namespace PokemonGo.RocketAPI.Logging
 		/// </summary>
 		/// <param name="message">The message to log. The current time will be prepended.</param>
 		/// <param name="level">Optional. Default <see cref="LogLevel.Info"/>.</param>
-		public void Write(string message, LogLevel level = LogLevel.Info)
+		public void Write(string message, LogLevel level = LogLevel.Info, string colorName = "Black" )
 		{
 			if (level > maxLogLevel)
 				return;
 
-			Console.WriteLine($"[{ DateTime.Now.ToString("HH:mm:ss")}] { message}");
+            ConsoleColor color = (ConsoleColor)Enum.Parse(typeof(ConsoleColor), colorName);
+
+            ColoredConsoleWrite(color, $"[{ DateTime.Now.ToString("HH:mm:ss")}] { message}");
 		}
-	}
+
+        public static void ColoredConsoleWrite(ConsoleColor color, string text)
+        {
+            ConsoleColor originalColor = System.Console.ForegroundColor;
+            System.Console.ForegroundColor = color;
+            System.Console.WriteLine(text);
+            System.Console.ForegroundColor = originalColor;
+        }
+        public void FormInfo(string infoType, string info)
+        {
+
+        }
+
+        public void MapObject(string oType, string oName, double lat, double lng, string id)
+        {
+
+        }
+    }
 }

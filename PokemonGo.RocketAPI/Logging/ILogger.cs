@@ -1,4 +1,6 @@
-﻿namespace PokemonGo.RocketAPI.Logging
+﻿using System;
+
+namespace PokemonGo.RocketAPI.Logging
 {
 	/// <summary>
 	/// All loggers must implement this interface.
@@ -10,6 +12,10 @@
 		/// </summary>
 		/// <param name="message">The message to log.</param>
 		/// <param name="level">Optional. Default <see cref="LogLevel.Info"/>.</param>
-		void Write(string message, LogLevel level = LogLevel.Info);
-	}
+		void Write(string message, LogLevel level = LogLevel.Info, string namedColor = "White");
+
+        void FormInfo(string infoType, string info);
+
+        void MapObject(string oType, string oName, double lat, double lng, string id);
+    }
 }
