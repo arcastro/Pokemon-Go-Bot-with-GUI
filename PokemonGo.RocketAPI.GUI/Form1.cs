@@ -308,7 +308,7 @@ namespace PokemonGo.RocketAPI.GUI
                 playerMarker.Position = new PointLatLng(Lat, Lng);
                 UserSettings.Default.DefaultLatitude = Lat;
                 UserSettings.Default.DefaultLongitude = Lng;
-            }
+            }            
         }
 
         private void tbLogin_TextChanged(object sender, EventArgs e)

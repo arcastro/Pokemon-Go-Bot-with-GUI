@@ -90,7 +90,7 @@
             this.richTextBox1.Location = new System.Drawing.Point(3, 3);
             this.richTextBox1.Name = "richTextBox1";
             this.richTextBox1.ReadOnly = true;
-            this.richTextBox1.Size = new System.Drawing.Size(566, 273);
+            this.richTextBox1.Size = new System.Drawing.Size(566, 274);
             this.richTextBox1.TabIndex = 0;
             this.richTextBox1.Text = "";
             this.richTextBox1.TextChanged += new System.EventHandler(this.richTextBox1_TextChanged);
@@ -180,12 +180,13 @@
             this.splitContainer1.Panel1.Controls.Add(this.groupBox1);
             this.splitContainer1.Panel1.Controls.Add(this.button1);
             this.splitContainer1.Panel1.Controls.Add(this.richTextBox1);
+            this.splitContainer1.Panel1MinSize = 280;
             // 
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.gMapControl1);
             this.splitContainer1.Size = new System.Drawing.Size(940, 562);
-            this.splitContainer1.SplitterDistance = 279;
+            this.splitContainer1.SplitterDistance = 280;
             this.splitContainer1.TabIndex = 9;
             // 
             // groupBox4
@@ -498,7 +499,7 @@
             // button1
             // 
             this.button1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.button1.Location = new System.Drawing.Point(575, 246);
+            this.button1.Location = new System.Drawing.Point(575, 247);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(362, 23);
             this.button1.TabIndex = 18;
@@ -528,7 +529,7 @@
             this.gMapControl1.ScaleMode = GMap.NET.WindowsForms.ScaleModes.Integer;
             this.gMapControl1.SelectedAreaFillColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(65)))), ((int)(((byte)(105)))), ((int)(((byte)(225)))));
             this.gMapControl1.ShowTileGridLines = false;
-            this.gMapControl1.Size = new System.Drawing.Size(940, 279);
+            this.gMapControl1.Size = new System.Drawing.Size(940, 278);
             this.gMapControl1.TabIndex = 0;
             this.gMapControl1.Zoom = 0D;
             this.gMapControl1.OnMarkerClick += new GMap.NET.WindowsForms.MarkerClick(this.gMapControl1_OnMarkerClick);
