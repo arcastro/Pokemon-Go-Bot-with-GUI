@@ -106,6 +106,7 @@ namespace PokemonGo.RocketAPI.Logic
             if (MoveTo != null)
             {
                 closestPS = MoveTo;
+                MoveTo = null;
                 stopRoutine = false;
             }
             else
