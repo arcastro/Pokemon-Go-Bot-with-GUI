@@ -39,6 +39,13 @@ namespace PokemonGo.RocketAPI
             logger.FormInfo(infoType, info);
         }
 
+        public static void PushFormIntInfo(string infoType, int amount)
+        {
+            if (logger == null)
+                return;
+            logger.FormIntInfo(infoType, amount);
+        }
+
         public static void PushMapObject(string oType, string oName, double lat, double lng, string id)
         {
             if (logger == null)

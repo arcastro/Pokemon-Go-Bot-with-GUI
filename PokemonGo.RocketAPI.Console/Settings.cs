@@ -16,6 +16,13 @@ namespace PokemonGo.RocketAPI.GUI
         public string PtcPassword => UserSettings.Default.PtcPassword;
         public double DefaultLatitude => UserSettings.Default.DefaultLatitude;
         public double DefaultLongitude => UserSettings.Default.DefaultLongitude;
+        public bool UseProxy => UserSettings.Default.UseProxy;
+        public string ProxyUri => UserSettings.Default.ProxyUri;
+        public string ProxyLogin => UserSettings.Default.ProxyLogin;
+        public string ProxyPass => UserSettings.Default.ProxyPass;
+        public bool AutoEvolve => UserSettings.Default.AutoEvolve;
+        public bool AutoTransfer => UserSettings.Default.AutoTransfer;
+        public bool TransferOnlyWeak => UserSettings.Default.TransferOnlyWeak;
 
         ICollection<KeyValuePair<ItemId, int>> ISettings.itemRecycleFilter
         {

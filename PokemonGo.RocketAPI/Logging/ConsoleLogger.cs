@@ -46,6 +46,11 @@ namespace PokemonGo.RocketAPI.Logging
 
         }
 
+        public void FormIntInfo(string infoType, int info)
+        {
+
+        }
+
         public void MapObject(string oType, string oName, double lat, double lng, string id)
         {
 

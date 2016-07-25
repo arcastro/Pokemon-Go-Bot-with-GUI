@@ -1,5 +1,5 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="PokemonGo.RocketAPI.Console" GeneratedClassName="UserSettings">
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="PokemonGo.RocketAPI.GUI" GeneratedClassName="UserSettings">
   <Profiles />
   <Settings>
     <Setting Name="AuthType" Type="System.String" Scope="User">
@@ -15,10 +15,31 @@
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="DefaultLatitude" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0</Value>
+      <Value Profile="(Default)">55.754853</Value>
     </Setting>
     <Setting Name="DefaultLongitude" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0</Value>
+      <Value Profile="(Default)">37.633987</Value>
+    </Setting>
+    <Setting Name="UseProxy" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="ProxyUri" Type="System.String" Scope="User">
+      <Value Profile="(Default)">proxy-proxy.com:1234</Value>
+    </Setting>
+    <Setting Name="ProxyLogin" Type="System.String" Scope="User">
+      <Value Profile="(Default)">proxyLogin</Value>
+    </Setting>
+    <Setting Name="ProxyPass" Type="System.String" Scope="User">
+      <Value Profile="(Default)">proxyPass</Value>
+    </Setting>
+    <Setting Name="AutoEvolve" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="AutoTransfer" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="TransferOnlyWeak" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
     </Setting>
   </Settings>
 </SettingsFile>

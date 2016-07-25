@@ -46,6 +46,11 @@ namespace PokemonGo.RocketAPI.GUI
         {
             Form1.gameForm.PushNewMapObject(oType, oName, lat, lng, id);
         }
+
+        public void FormIntInfo(string infoType, int amount)
+        {
+            Form1.gameForm.PushCounterInfo(infoType, amount);
+        }
     }
 
 }

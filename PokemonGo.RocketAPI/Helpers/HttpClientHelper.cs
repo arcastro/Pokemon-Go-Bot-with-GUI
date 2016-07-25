@@ -11,12 +11,27 @@ namespace PokemonGo.RocketAPI.Helpers
 {
     public static class HttpClientHelper
     {
-        public static async Task<TResponse> PostFormEncodedAsync<TResponse>(string url, params KeyValuePair<string, string>[] keyValuePairs)
+        public static async Task<TResponse> PostFormEncodedAsync<TResponse>(string url, ISettings settings, params KeyValuePair<string, string>[] keyValuePairs)
         {
+
+            string proxyUri = settings.ProxyUri;
+
+            NetworkCredential proxyCreds = new NetworkCredential(
+                settings.ProxyLogin,
+                settings.ProxyPass
+            );
+
+            WebProxy proxy = new WebProxy(proxyUri, false)
+            {
+                UseDefaultCredentials = false,
+                Credentials = proxyCreds,
+            };
+
             var handler = new HttpClientHandler()
             {
                 AutomaticDecompression = DecompressionMethods.GZip,
-                AllowAutoRedirect = false
+                AllowAutoRedirect = false,
+                Proxy = settings.UseProxy ? proxy : null
             };
 
             using (var tempHttpClient = new HttpClient(handler))

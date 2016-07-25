@@ -17,11 +17,26 @@ namespace PokemonGo.RocketAPI.Logic
         private readonly ISettings _clientSettings;
         private readonly Inventory _inventory;
 
+        private Dictionary<string, FortData> currentPokeStops = new Dictionary<string, FortData>();
+
+        private FortData FortToMove;
+
+        private bool stopRoutine = false;
+
         public Logic(ISettings clientSettings)
         {
             _clientSettings = clientSettings;
             _client = new Client(_clientSettings);
             _inventory = new Inventory(_client);
+        }
+
+        public void ForceMoveToPokestop(string id)
+        {
+            if (currentPokeStops.ContainsKey(id))
+            {
+                FortToMove = currentPokeStops[id];
+                stopRoutine = true;
+            }
         }
 
         public async void Execute()
@@ -31,19 +46,20 @@ namespace PokemonGo.RocketAPI.Logic
             if (_clientSettings.AuthType == AuthType.Ptc)
                 await _client.DoPtcLogin(_clientSettings.PtcUsername, _clientSettings.PtcPassword);
             else if (_clientSettings.AuthType == AuthType.Google)
-                await _client.DoGoogleLogin();
+                await _client.DoGoogleLogin(_clientSettings);
 
             while (true)
             {
                 try
                 {                    
                     await _client.SetServer();
-                    Logger.PushFormInfo("wipe", "");
                     await _client.GetProfile();
-                    await EvolveAllPokemonWithEnoughCandy();
-                    await TransferDuplicatePokemon(true);
+                    if (_clientSettings.AutoEvolve)
+                        await EvolveAllPokemonWithEnoughCandy();
+                    if (_clientSettings.AutoTransfer)
+                        await TransferDuplicatePokemon(_clientSettings.TransferOnlyWeak,true);
                     await RecycleItems();
-                    await RepeatAction(25, async () => await ExecuteFarmingPokestopsAndPokemons(_client));
+                    await RepeatAction(25, async () => await ExecuteFarmingPokestopsAndPokemons(_client, FortToMove));
 
                     /*
                 * Example calls below
@@ -71,7 +87,7 @@ namespace PokemonGo.RocketAPI.Logic
                 await action();
         }
 
-        private async Task ExecuteFarmingPokestopsAndPokemons(Client client)
+        private async Task ExecuteFarmingPokestopsAndPokemons(Client client, FortData MoveTo = null)
         {
             var mapObjects = await client.GetMapObjects();
 
@@ -81,35 +97,54 @@ namespace PokemonGo.RocketAPI.Logic
 
             foreach (var pokeStop in orderedPs)
             {
+                if (!currentPokeStops.ContainsKey(pokeStop.Id))
+                    currentPokeStops.Add(pokeStop.Id, pokeStop);
                 Logger.PushMapObject("ps", pokeStop.LureInfo?.LureExpiresTimestampMs > DateTime.UtcNow.ToUnixTime() ? "lured" : "normal", pokeStop.Latitude, pokeStop.Longitude, pokeStop.Id);
             }
 
-            var closestPS = orderedPs.First();
+            FortData closestPS = null;
+            if (MoveTo != null)
+            {
+                closestPS = MoveTo;
+                stopRoutine = false;
+            }
+            else
+                closestPS = orderedPs.First();
             var update = await client.UpdatePlayerLocation(closestPS.Latitude, closestPS.Longitude);
             //var fortInfo = await client.GetFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);
             var fortSearch = await client.SearchFort(closestPS.Id, closestPS.Latitude, closestPS.Longitude);
             Logger.Write($"Farmed XP: {fortSearch.ExperienceAwarded}, Gems: { fortSearch.GemsAwarded}, Eggs: {fortSearch.PokemonDataEgg} Items: {StringUtils.GetSummedFriendlyNameOfItemAwardList(fortSearch.ItemsAwarded)}", LogLevel.Info, "LightBlue");
             Logger.PushFormInfo("xpGained", fortSearch.ExperienceAwarded.ToString());
+            Logger.PushFormIntInfo("ps", 1);
+            if (stopRoutine) return;
+
             await Task.Delay(3000);
+
+            if (stopRoutine) return;
+
             await ExecuteCatchAllNearbyPokemons(client);
-            
+
+
         }
 
         private async Task ExecuteCatchAllNearbyPokemons(Client client)
         {
             var mapObjects = await client.GetMapObjects();
 
-            var pokemons = mapObjects.MapCells.SelectMany(i => i.CatchablePokemons);
+            //var pokemons = mapObjects.MapCells.SelectMany(i => i.NearbyPokemons);
+            var pokemons = mapObjects.MapCells.SelectMany(i => i.WildPokemons);
+            //var pokemons = mapObjects.MapCells.SelectMany(i => i.CatchablePokemons);
 
             var orderedPokemons = pokemons.OrderBy(x => Math.Pow(Math.Pow((x.Longitude - _client._currentLng), 2) + Math.Pow((x.Latitude - _client._currentLat), 2), 0.5));
 
             foreach (var pokemon in orderedPokemons)
             {
-                Logger.PushMapObject("pm", pokemon.PokemonId.ToString(), pokemon.Latitude, pokemon.Longitude, pokemon.EncounterId.ToString());
+                Logger.PushMapObject("pm", pokemon.PokemonData?.PokemonId.ToString(), pokemon.Latitude, pokemon.Longitude, pokemon.EncounterId.ToString());
             }
 
             foreach (var pokemon in orderedPokemons)
             {
+                if (stopRoutine) return;
                 var update = await client.UpdatePlayerLocation(pokemon.Latitude, pokemon.Longitude);
 
                 var encounterPokemonResponse = await client.EncounterPokemon(pokemon.EncounterId, pokemon.SpawnpointId);
@@ -119,7 +154,7 @@ namespace PokemonGo.RocketAPI.Logic
                 CatchPokemonResponse caughtPokemonResponse;
                 do
                 {
-                    if (encounterPokemonResponse?.CaptureProbability.CaptureProbability_.First() < 0.4)
+                    if (encounterPokemonResponse?.CaptureProbability?.CaptureProbability_?.First() < 0.4)
                     {
                         //Throw berry is we can
                         await UseBerry(pokemon.EncounterId, pokemon.SpawnpointId);
@@ -132,13 +167,14 @@ namespace PokemonGo.RocketAPI.Logic
 
                 var caught = caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess;
 
-                Logger.Write(caught ? $"We caught a {pokemon.PokemonId} with CP {encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp} using a {pokeball}, xp: {caughtPokemonResponse.Scores.Xp?.Sum()}" : $"{pokemon.PokemonId} with CP {encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp} got away while using a {pokeball}...", LogLevel.Info, caught ? "Green" : "Yellow");
+                Logger.Write(caught ? $"We caught a {pokemon.PokemonData.PokemonId} with CP {encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp} using a {pokeball}, xp: {caughtPokemonResponse.Scores.Xp?.Sum()}" : $"{pokemon.PokemonData.PokemonId} with CP {encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp} got away while using a {pokeball}...", LogLevel.Info, caught ? "Green" : "Yellow");
                 if (caught)
                 {
                     Logger.PushFormInfo("xpGained", caughtPokemonResponse.Scores.Xp?.Sum().ToString());
                     Logger.PushFormInfo("sdGained", caughtPokemonResponse.Scores.Stardust?.Sum().ToString());
+                    Logger.PushFormIntInfo("pm", 1);
                 }
-                Logger.PushMapObject("pm_rm", pokemon.PokemonId.ToString(), pokemon.Latitude, pokemon.Longitude, pokemon.EncounterId.ToString());
+                Logger.PushMapObject("pm_rm", pokemon.PokemonData.PokemonId.ToString(), pokemon.Latitude, pokemon.Longitude, pokemon.EncounterId.ToString());
 
                 await Task.Delay(5000);
             }
@@ -164,9 +200,9 @@ namespace PokemonGo.RocketAPI.Logic
             }
         }
 
-        private async Task TransferDuplicatePokemon(bool keepPokemonsThatCanEvolve = false)
+        private async Task TransferDuplicatePokemon(bool onlyWeak, bool keepPokemonsThatCanEvolve = false)
         {
-            var duplicatePokemons = await _inventory.GetDuplicatePokemonToTransfer();
+            var duplicatePokemons = await _inventory.GetDuplicatePokemonToTransfer(onlyWeak);
 
             foreach (var duplicatePokemon in duplicatePokemons)
             {

@@ -23,14 +23,21 @@ namespace PokemonGo.RocketAPI.GUI
     {
         public static Form1 gameForm;
 
-        GMapOverlay markersOverlay;
+        GMapOverlay pokeStopsOverlay;
+        GMapOverlay playerOverlay;
+        GMapOverlay pokemonsOverlay;
 
         TimeSpan ts = new TimeSpan();
 
-        public int ExpGained = 0;
-        public int StarDust = 0;
+        Logic.Logic mainLogicThread;
+
+        private int ExpGained = 0;
+        private int StarDust = 0;
+        private int PokestopsFarmed = 0;
+        private int PokemonsFarmed = 0;
 
         bool LoadingSettings = false;
+        bool FormBeingClosed = false;
 
         GMarkerGoogle playerMarker;
 
@@ -48,15 +55,25 @@ namespace PokemonGo.RocketAPI.GUI
             LoadingSettings = true;
             var startSettings = new Settings();
 
-            comboBox1.DataSource = Enum.GetValues(typeof(AuthType));           
+            comboBox1.DataSource = Enum.GetValues(typeof(AuthType));
 
             comboBox1.SelectedItem = startSettings.AuthType;
 
             tbLat.Text = startSettings.DefaultLatitude.ToString();
             tbLng.Text = startSettings.DefaultLongitude.ToString();
 
-            tbLogin.Text = startSettings.PtcUsername.ToString();
-            tbPswd.Text = startSettings.PtcPassword.ToString();
+            tbLogin.Text = startSettings.PtcUsername;
+            tbPswd.Text = startSettings.PtcPassword;
+
+            chbUseProxy.Checked = startSettings.UseProxy;
+            SwitchProxyBox(!startSettings.UseProxy);
+            tbProxyUri.Text = startSettings.ProxyUri;
+            tbProxyLogin.Text = startSettings.ProxyLogin;
+            tbProxyPass.Text = startSettings.ProxyPass;
+
+            chbAutoEvolve.Checked = startSettings.AutoEvolve;
+            chbAutoTransfer.Checked = startSettings.AutoTransfer;
+            chbTransferWeak.Checked = startSettings.TransferOnlyWeak;
 
             LoadingSettings = false;
 
@@ -80,6 +97,8 @@ namespace PokemonGo.RocketAPI.GUI
 
             gMapControl1.PolygonsEnabled = true;
 
+            gMapControl1.ShowCenter = false;
+
             gMapControl1.RoutesEnabled = true;
 
             gMapControl1.ShowTileGridLines = false;
@@ -91,10 +110,17 @@ namespace PokemonGo.RocketAPI.GUI
 
             gMapControl1.Position = new GMap.NET.PointLatLng(Lat, Lng);
 
-            markersOverlay = new GMapOverlay("markers");
-            //GMarkerGoogle marker = new GMarkerGoogle(new PointLatLng(Lat, Lng), GMarkerGoogleType.green);
-            //markersOverlay.Markers.Add(marker);
-            gMapControl1.Overlays.Add(markersOverlay);
+            pokeStopsOverlay = new GMapOverlay("pokeStops");
+            gMapControl1.Overlays.Add(pokeStopsOverlay);
+            playerOverlay = new GMapOverlay("playerMarker");
+            gMapControl1.Overlays.Add(playerOverlay);
+            pokemonsOverlay = new GMapOverlay("pokemons");
+            gMapControl1.Overlays.Add(pokemonsOverlay);
+
+            GMap.NET.MapProviders.GMapProvider.WebProxy = System.Net.WebRequest.GetSystemWebProxy();
+            GMap.NET.MapProviders.GMapProvider.WebProxy.Credentials = System.Net.CredentialCache.DefaultCredentials;
+
+            SetMapObjects();
         }
 
         public void PushNewRow(string rowText, Color rowColor)
@@ -105,17 +131,41 @@ namespace PokemonGo.RocketAPI.GUI
             }));
         }
 
+        public void PushCounterInfo(string infoType, int amout)
+        {
+            switch (infoType)
+            {
+                case "ps":
+                    PokestopsFarmed += amout;
+                    Invoke(new Action(() =>
+                    {
+                        tbPokestops.Text = PokestopsFarmed.ToString();
+                    }));
+                    break;
+                case "pm":
+                    PokemonsFarmed += amout;
+                    Invoke(new Action(() =>
+                    {
+                        tbPokemons.Text = PokemonsFarmed.ToString();
+                    }));
+                    break;
+                default:
+                    break;
+            }
+        }
+
 
         public void PushNewInfo(string infoType, string info)
         {
             int gained = 0;
-            double coord = 0;
+            double coord = 0;            
+
             switch (infoType)
             {
                 case "profileInfo":
                     Invoke(new Action(() =>
                     {
-                        gameForm.charInfo.Text += (gameForm.charInfo.Text.Length == 0 ? "" : "\r\n") + info;
+                        this.Text = $"PokemonGo Bot GUI -> {info}";
                     }));
                     break;
                 case "xpGained":
@@ -123,7 +173,7 @@ namespace PokemonGo.RocketAPI.GUI
                     ExpGained += gained;
                     Invoke(new Action(() =>
                     {
-                        gameForm.xpBox.Text = ExpGained.ToString();
+                        xpBox.Text = ExpGained.ToString();
                     }));
                     break;
                 case "sdGained":
@@ -131,17 +181,16 @@ namespace PokemonGo.RocketAPI.GUI
                     StarDust += int.Parse(info);
                     Invoke(new Action(() =>
                     {
-                        gameForm.sdBox.Text = StarDust.ToString();
+                        sdBox.Text = StarDust.ToString();
                     }));
                     break;
                 case "wipe":
                     StarDust = 0;
-                    //ExpGained = 0;
+                    ExpGained = 0;
                     Invoke(new Action(() =>
                     {
-                        gameForm.charInfo.Text = "";
-                        gameForm.sdBox.Text = "0";
-                        //gameForm.xpBox.Text = "0";
+                        sdBox.Text = "0";
+                        xpBox.Text = "0";
                     }));
                     break;
                 case "nextLat":
@@ -158,36 +207,53 @@ namespace PokemonGo.RocketAPI.GUI
                     break;
             }
         }
+
+        Queue<NewMapObject> qMap = new Queue<NewMapObject>();
+
+
         public void PushNewMapObject(string oType, string oName, double lat, double lng, string uid)
         {
+            NewMapObject nmo = new NewMapObject(oType, oName, lat, lng, uid);
+            qMap.Enqueue(nmo);            
+        }
 
-            switch (oType)
+        private async void SetMapObjects()
+        {
+            while (!FormBeingClosed)
             {
-                case "ps":
-                    if (!mapMarkers.ContainsKey(uid))
+                if (qMap.Count > 0)
+                {
+                    var newMapObj = qMap.Dequeue();
+                    switch (newMapObj.oType)
                     {
-                        GMarkerGoogle marker = new GMarkerGoogle(new PointLatLng(lat, lng), oName != "lured" ? Properties.Resources.Pstop : Properties.Resources.PstopLured);
-                        marker.ToolTipText = "PokeStop";
-                        markersOverlay.Markers.Add(marker);
-                        mapMarkers.Add(uid, marker);
+                        case "ps":
+                            if (!mapMarkers.ContainsKey(newMapObj.uid))
+                            {
+                                GMarkerGoogle marker = new GMarkerGoogle(new PointLatLng(newMapObj.lat, newMapObj.lng), newMapObj.oName != "lured" ? Properties.Resources.Pstop : Properties.Resources.PstopLured);
+                                marker.ToolTipText = "PokeStop";
+                                pokeStopsOverlay.Markers.Add(marker);
+                                mapMarkers.Add(newMapObj.uid, marker);
+                            }
+                            break;
+                        case "pm_rm":
+                            if (mapMarkers.ContainsKey(newMapObj.uid))
+                            {
+                                pokemonsOverlay.Markers.Remove(mapMarkers[newMapObj.uid]);
+                            }
+                            break;
+                        case "pm":
+                            if (!mapMarkers.ContainsKey(newMapObj.uid))
+                            {
+                                CreatePokemonMarker(newMapObj.oName, newMapObj.lat, newMapObj.lng, newMapObj.uid);
+                            }
+                            break;
+                        default:
+                            break;
                     }
-                    break;
-                case "pm_rm":
-                    if (mapMarkers.ContainsKey(uid))
-                    {
-                        markersOverlay.Markers.Remove(mapMarkers[uid]);
-                    }
-                    break;
-                case "pm":
-                    if (!mapMarkers.ContainsKey(uid))
-                    {
-                        CreatePokemonMarker(oName, lat, lng, uid);
-                    }
-                    break;
-                default:
-                    break;
-            }
 
+                }
+                await Task.Delay(10);
+            }
         }
 
         public void CreatePokemonMarker(string oName, double lat, double lng, string uid)
@@ -196,16 +262,14 @@ namespace PokemonGo.RocketAPI.GUI
 
             GMarkerGoogle marker = new GMarkerGoogle(new PointLatLng(lat, lng), pokemon.ToBitmap());
             marker.ToolTipText = oName;
-            markersOverlay.Markers.Add(marker);
+            pokemonsOverlay.Markers.Add(marker);
             mapMarkers.Add(uid, marker);
         }
 
 
         public Form1()
         {
-            InitializeComponent();
-
-            
+            InitializeComponent();           
 
         }
 
@@ -236,8 +300,8 @@ namespace PokemonGo.RocketAPI.GUI
 
             if (playerMarker == null)
             {
-                playerMarker = new GMarkerGoogle(new PointLatLng(Lat, Lng), GMarkerGoogleType.arrow);
-                markersOverlay.Markers.Add(playerMarker);
+                playerMarker = new GMarkerGoogle(new PointLatLng(Lat, Lng), Properties.Resources.trainer.ResizeImage(30, 50));
+                playerOverlay.Markers.Add(playerMarker);
             }
             else
             {
@@ -245,7 +309,6 @@ namespace PokemonGo.RocketAPI.GUI
                 UserSettings.Default.DefaultLatitude = Lat;
                 UserSettings.Default.DefaultLongitude = Lng;
             }
-            
         }
 
         private void tbLogin_TextChanged(object sender, EventArgs e)
@@ -255,6 +318,7 @@ namespace PokemonGo.RocketAPI.GUI
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            FormBeingClosed = true;
             UserSettings.Default.Save();
 
             mainTaskCancel?.Cancel();
@@ -290,9 +354,12 @@ namespace PokemonGo.RocketAPI.GUI
                 UserSettings.Default.DefaultLongitude = newVal;
         }
 
+        
+
         private void button1_Click(object sender, EventArgs e)
         {
             (sender as Button).Enabled = false;
+            groupBox1.Enabled = groupBox2.Enabled = groupBox4.Enabled = false;
             Logger.SetLogger(new FormLogger(LogLevel.Info));
             timer1.Start();
             mainTaskCancel = new CancellationTokenSource();
@@ -301,7 +368,8 @@ namespace PokemonGo.RocketAPI.GUI
             {
                 try
                 {
-                    new Logic.Logic(new Settings()).Execute();
+                    mainLogicThread = new Logic.Logic(new Settings());
+                    mainLogicThread.Execute();
                 }
                 catch (PtcOfflineException)
                 {
@@ -314,10 +382,77 @@ namespace PokemonGo.RocketAPI.GUI
             }, ct);
         }
 
+        private void gMapControl1_OnMarkerClick(GMapMarker item, MouseEventArgs e)
+        {
+            var markerId = mapMarkers.Where(x => x.Value == item).FirstOrDefault().Key;
+            if (markerId != null)
+                mainLogicThread.ForceMoveToPokestop(markerId);
+        }
+
+        private void checkBox4_CheckedChanged(object sender, EventArgs e)
+        {
+            UserSettings.Default.UseProxy = (sender as CheckBox).Checked;
+
+            SwitchProxyBox(!UserSettings.Default.UseProxy);
+        }
+
+        void SwitchProxyBox(bool sw)
+        {
+            tbProxyUri.ReadOnly = tbProxyLogin.ReadOnly = tbProxyPass.ReadOnly = sw;
+        }
+
+        private void checkBox2_CheckedChanged(object sender, EventArgs e)
+        {
+            UserSettings.Default.AutoTransfer = (sender as CheckBox).Checked;
+            chbTransferWeak.Enabled = UserSettings.Default.AutoTransfer;
+        }
+
+        private void checkBox3_CheckedChanged(object sender, EventArgs e)
+        {
+            UserSettings.Default.TransferOnlyWeak = (sender as CheckBox).Checked;
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            UserSettings.Default.AutoEvolve = (sender as CheckBox).Checked;
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            UserSettings.Default.ProxyUri = (sender as TextBox).Text;
+        }
+
+        private void textBox4_TextChanged(object sender, EventArgs e)
+        {
+            UserSettings.Default.ProxyLogin = (sender as TextBox).Text;
+        }
+
+        private void textBox5_TextChanged(object sender, EventArgs e)
+        {
+            UserSettings.Default.ProxyPass = (sender as TextBox).Text;
+        }
+
         private void timer1_Tick(object sender, EventArgs e)
         {
             ts = ts.Add(new TimeSpan(0, 0, 1));
             timerLb.Text = ts.ToString();
+        }
+    }
+
+    internal class NewMapObject
+    {
+        public string oType;
+        public string oName;
+        public double lat;
+        public double lng;
+        public string uid;
+        public NewMapObject(string _oType, string _oName, double _lat, double _lng, string _uid)
+        {
+            oType = _oType;
+            oName = _oName;
+            lat = _lat;
+            lng = _lng;
+            uid = _uid;
         }
     }
 }

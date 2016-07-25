@@ -19,9 +19,9 @@ namespace PokemonGo.RocketAPI.Login
         private const string ClientId = "848232511240-73ri3t7plvk96pj4f85uj8otdat2alem.apps.googleusercontent.com";
         private const string ClientSecret = "NCjF1TLi2CcY6t5mt0ZveuL7";
 
-        internal static async Task<TokenResponseModel> GetAccessToken()
+        internal static async Task<TokenResponseModel> GetAccessToken(ISettings settings)
         {
-            var deviceCodeResponse = await GetDeviceCode();
+            var deviceCodeResponse = await GetDeviceCode(settings);
             Logger.Write("Please visit " + deviceCodeResponse.verification_url + " and enter " + deviceCodeResponse.user_code, LogLevel.None);
 
             //Poll until user submitted code..
@@ -29,22 +29,22 @@ namespace PokemonGo.RocketAPI.Login
             do
             {
                 await Task.Delay(2000);
-                tokenResponse = await PollSubmittedToken(deviceCodeResponse.device_code);
+                tokenResponse = await PollSubmittedToken(deviceCodeResponse.device_code, settings);
             } while (tokenResponse.access_token == null || tokenResponse.refresh_token == null);
 
             return tokenResponse;
         }
 
-        private static async Task<DeviceCodeModel> GetDeviceCode()
+        private static async Task<DeviceCodeModel> GetDeviceCode(ISettings settings)
         {
-            return await HttpClientHelper.PostFormEncodedAsync<DeviceCodeModel>(OauthEndpoint,
+            return await HttpClientHelper.PostFormEncodedAsync<DeviceCodeModel>(OauthEndpoint, settings,
                 new KeyValuePair<string, string>("client_id", ClientId),
                 new KeyValuePair<string, string>("scope", "openid email https://www.googleapis.com/auth/userinfo.email"));
         }
 
-        private static async Task<TokenResponseModel> PollSubmittedToken(string deviceCode)
+        private static async Task<TokenResponseModel> PollSubmittedToken(string deviceCode, ISettings settings)
         {
-            return await HttpClientHelper.PostFormEncodedAsync<TokenResponseModel>(OauthTokenEndpoint,
+            return await HttpClientHelper.PostFormEncodedAsync<TokenResponseModel>(OauthTokenEndpoint, settings,
                 new KeyValuePair<string, string>("client_id", ClientId),
                 new KeyValuePair<string, string>("client_secret", ClientSecret),
                 new KeyValuePair<string, string>("code", deviceCode),
@@ -52,9 +52,9 @@ namespace PokemonGo.RocketAPI.Login
                 new KeyValuePair<string, string>("scope", "openid email https://www.googleapis.com/auth/userinfo.email"));
         }
 
-        public static async Task<TokenResponseModel> GetAccessToken(string refreshToken)
+        public static async Task<TokenResponseModel> GetAccessToken(string refreshToken, ISettings settings)
         {
-            return await HttpClientHelper.PostFormEncodedAsync<TokenResponseModel>(OauthTokenEndpoint,
+            return await HttpClientHelper.PostFormEncodedAsync<TokenResponseModel>(OauthTokenEndpoint, settings,
                 new KeyValuePair<string, string>("access_type", "offline"),
                 new KeyValuePair<string, string>("client_id", ClientId),
                 new KeyValuePair<string, string>("client_secret", ClientSecret),

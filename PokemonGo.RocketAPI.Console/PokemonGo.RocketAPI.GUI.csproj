@@ -7,7 +7,7 @@
     <ProjectGuid>{1FEA147E-F704-497B-A538-00B053B5F672}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>PokemonGo.RocketAPI.Console</RootNamespace>
+    <RootNamespace>PokemonGo.RocketAPI.GUI</RootNamespace>
     <AssemblyName>PokemonGo.RocketAPI.Console</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -576,6 +576,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Harmony_large.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\trainer.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

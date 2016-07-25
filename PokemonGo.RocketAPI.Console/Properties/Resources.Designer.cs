@@ -39,7 +39,7 @@ namespace PokemonGo.RocketAPI.GUI.Properties {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("PokemonGo.RocketAPI.Console.Properties.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("PokemonGo.RocketAPI.GUI.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -1596,6 +1596,16 @@ namespace PokemonGo.RocketAPI.GUI.Properties {
         internal static System.Drawing.Bitmap PstopLured {
             get {
                 object obj = ResourceManager.GetObject("PstopLured", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap trainer {
+            get {
+                object obj = ResourceManager.GetObject("trainer", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

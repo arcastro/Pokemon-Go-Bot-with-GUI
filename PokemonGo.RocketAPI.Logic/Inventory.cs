@@ -40,40 +40,34 @@ namespace PokemonGo.RocketAPI.Logic
         } 
 
 
-        public async Task<IEnumerable<PokemonData>> GetDuplicatePokemonToTransfer(bool keepPokemonsThatCanEvolve = false)
+        public async Task<IEnumerable<PokemonData>> GetDuplicatePokemonToTransfer(bool onlyWeak)
         {
             var myPokemon = await GetPokemons();
 
             var pokemonList = myPokemon as IList<PokemonData> ?? myPokemon.ToList();
-            if (keepPokemonsThatCanEvolve)
+
+            if (onlyWeak)
             {
                 var results = new List<PokemonData>();
                 var pokemonsThatCanBeTransfered = pokemonList.GroupBy(p => p.PokemonId)
                     .Where(x => x.Count() > 1).ToList();
 
-                var myPokemonSettings = await GetPokemonSettings();
-                var pokemonSettings = myPokemonSettings.ToList();
-
-                var myPokemonFamilies = await GetPokemonFamilies();
-                var pokemonFamilies = myPokemonFamilies.ToArray();
-
                 foreach (var pokemon in pokemonsThatCanBeTransfered)
                 {
-                    var settings = pokemonSettings.Single(x => x.PokemonId == pokemon.Key);
-                    var familyCandy = pokemonFamilies.Single(x => settings.FamilyId == x.FamilyId);
-                    var amountToSkip = (familyCandy.Candy + settings.CandyToEvolve - 1)/settings.CandyToEvolve;
+                    var strongestPokemonCp = pokemon.Max(x => x.Cp);
+                    var amountToSkip = pokemon.Count(x => x.Cp > strongestPokemonCp * 0.7);
 
                     results.AddRange(pokemonList.Where(x => x.PokemonId == pokemon.Key && x.Favorite == 0)
                         .OrderByDescending(x => x.Cp)
                         .ThenBy(n => n.StaminaMax)
-                        .Skip(amountToSkip)
+                        .Skip(amountToSkip + 1)
                         .ToList());
 
                 }
 
                 return results;
             }
-            
+
             return pokemonList
                 .GroupBy(p => p.PokemonId)
                 .Where(x => x.Count() > 1)
