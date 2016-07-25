@@ -59,7 +59,7 @@ namespace PokemonGo.RocketAPI.Logic
                     if (_clientSettings.AutoTransfer)
                         await TransferDuplicatePokemon(_clientSettings.TransferOnlyWeak,true);
                     await RecycleItems();
-                    await RepeatAction(25, async () => await ExecuteFarmingPokestopsAndPokemons(_client, FortToMove));
+                    await RepeatAction(25, async () => await ExecuteFarmingPokestopsAndPokemons(_client));
 
                     /*
                 * Example calls below
@@ -87,7 +87,7 @@ namespace PokemonGo.RocketAPI.Logic
                 await action();
         }
 
-        private async Task ExecuteFarmingPokestopsAndPokemons(Client client, FortData MoveTo = null)
+        private async Task ExecuteFarmingPokestopsAndPokemons(Client client)
         {
             var mapObjects = await client.GetMapObjects();
 
@@ -103,10 +103,10 @@ namespace PokemonGo.RocketAPI.Logic
             }
 
             FortData closestPS = null;
-            if (MoveTo != null)
+            if (FortToMove != null)
             {
-                closestPS = MoveTo;
-                MoveTo = null;
+                closestPS = FortToMove;
+                FortToMove = null;
                 stopRoutine = false;
             }
             else
