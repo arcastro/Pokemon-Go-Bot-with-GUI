@@ -7,5 +7,5 @@
 - Added humanization of algorythm.
 - Added some random data in GPS coords.
 
-![alt GUI example](http://i.imgur.com/Q91hdTf.png)
+![alt GUI example](http://i.imgur.com/MxnEgQO.png)
 
