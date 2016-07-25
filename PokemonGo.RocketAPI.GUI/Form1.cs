@@ -186,11 +186,9 @@ namespace PokemonGo.RocketAPI.GUI
                     break;
                 case "wipe":
                     StarDust = 0;
-                    ExpGained = 0;
                     Invoke(new Action(() =>
                     {
                         sdBox.Text = "0";
-                        xpBox.Text = "0";
                     }));
                     break;
                 case "nextLat":
@@ -430,6 +428,11 @@ namespace PokemonGo.RocketAPI.GUI
         private void textBox5_TextChanged(object sender, EventArgs e)
         {
             UserSettings.Default.ProxyPass = (sender as TextBox).Text;
+        }
+
+        private void richTextBox1_LinkClicked(object sender, LinkClickedEventArgs e)
+        {
+            System.Diagnostics.Process.Start(e.LinkText);
         }
 
         private void timer1_Tick(object sender, EventArgs e)
