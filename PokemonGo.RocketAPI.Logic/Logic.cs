@@ -53,6 +53,7 @@ namespace PokemonGo.RocketAPI.Logic
                 try
                 {                    
                     await _client.SetServer();
+                    Logger.PushFormInfo("wipe", "");
                     await _client.GetProfile();
                     if (_clientSettings.AutoEvolve)
                         await EvolveAllPokemonWithEnoughCandy();
