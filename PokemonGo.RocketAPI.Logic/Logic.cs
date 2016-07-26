@@ -20,7 +20,6 @@ namespace PokemonGo.RocketAPI.Logic
         private Dictionary<string, FortData> currentPokeStops = new Dictionary<string, FortData>();
 
         private Queue<FortData> FortsToMove = new Queue<FortData>();
-        private FortData NextFortToMove;
 
         Random r = new Random();
 
