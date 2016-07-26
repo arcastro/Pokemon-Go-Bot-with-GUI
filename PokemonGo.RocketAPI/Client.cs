@@ -22,6 +22,8 @@ namespace PokemonGo.RocketAPI
         private Request.Types.UnknownAuth _unknownAuth;
         private Random r = new Random();
 
+        public bool InterruptMovement = false;
+
         public double _currentLat;
         public double _currentLng;
 
@@ -139,7 +141,9 @@ namespace PokemonGo.RocketAPI
                     await
                         _httpClient.PostProtoPayload<Request, PlayerUpdateResponse>($"https://{_apiUrl}/rpc", updateRequest);
                 cLat = nextLat; cLng = nextLng;
-            } while (Math.Abs(_currentLat - lat) > 0.00001 || Math.Abs(_currentLng - lng) > 0.00001); //around 1 meter
+            } while ((Math.Abs(_currentLat - lat) > 0.00001 || Math.Abs(_currentLng - lng) > 0.00001) && !InterruptMovement); //around 1 meter
+            if (InterruptMovement)
+                InterruptMovement = false;
             return updateResponse;
         }
 

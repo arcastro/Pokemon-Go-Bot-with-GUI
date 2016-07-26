@@ -20,7 +20,7 @@ namespace PokemonGo.RocketAPI.Logic
         private Dictionary<string, FortData> currentPokeStops = new Dictionary<string, FortData>();
 
         private Queue<FortData> FortsToMove = new Queue<FortData>();
-
+        private Tuple<double, double> ForceLocationToMove = null;
         Random r = new Random();
 
         private bool stopRoutine = false;
@@ -40,6 +40,15 @@ namespace PokemonGo.RocketAPI.Logic
                     stopRoutine = true;
                 FortsToMove.Enqueue(currentPokeStops[id]);
             }
+        }
+
+        public void ForceMoveToLocation(double lat, double lng)
+        {
+            stopRoutine = true;
+            _client.InterruptMovement = true;
+            FortsToMove.Clear();
+            ForceLocationToMove = Tuple.Create(lat, lng);
+            Logger.Write($"Force moving to => Lat: {lat} - Lng: {lng}", LogLevel.Info, "Gold");
         }
 
         public async void Execute()
@@ -113,29 +122,38 @@ namespace PokemonGo.RocketAPI.Logic
                 Logger.PushMapObject("ps", pokeStop.LureInfo?.LureExpiresTimestampMs > DateTime.UtcNow.ToUnixTime() ? "lured" : "normal", pokeStop.Latitude, pokeStop.Longitude, pokeStop.Id);
             }
 
-            FortData closestPS = null;
-            if (FortsToMove != null && FortsToMove.Count > 0)
+            if (ForceLocationToMove == null)
             {
-                closestPS = FortsToMove.Dequeue();
-                Logger.Write($"Pushing from Pokestop Queue! {FortsToMove.Count} in Queue.", LogLevel.Info, "IndianRed");                
-                stopRoutine = false;
+                FortData closestPS = null;
+                if (FortsToMove != null && FortsToMove.Count > 0)
+                {
+                    closestPS = FortsToMove.Dequeue();
+                    Logger.Write($"Pushing from Pokestop Queue! {FortsToMove.Count} in Queue.", LogLevel.Info, "IndianRed");
+                    stopRoutine = false;
+                }
+                else
+                    closestPS = orderedPs.First();
+                var update = await client.UpdatePlayerLocation(closestPS.Latitude, closestPS.Longitude);
+                //var fortInfo = await client.GetFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);
+                var fortSearch = await client.SearchFort(closestPS.Id, closestPS.Latitude, closestPS.Longitude);
+                Logger.Write($"Farmed XP: {fortSearch.ExperienceAwarded}, Gems: { fortSearch.GemsAwarded}, Eggs: {fortSearch.PokemonDataEgg} Items: {StringUtils.GetSummedFriendlyNameOfItemAwardList(fortSearch.ItemsAwarded)}", LogLevel.Info, "LightBlue");
+                Logger.PushFormInfo("xpGained", fortSearch.ExperienceAwarded.ToString());
+                Logger.PushFormIntInfo("ps", 1);
+                if (stopRoutine) return;
+
+                await Task.Delay(2000 + r.Next(10) * 157);
+
+                if (stopRoutine) return;
+
+                await ExecuteCatchAllNearbyPokemons(client);
             }
             else
-                closestPS = orderedPs.First();
-            var update = await client.UpdatePlayerLocation(closestPS.Latitude, closestPS.Longitude);
-            //var fortInfo = await client.GetFort(pokeStop.Id, pokeStop.Latitude, pokeStop.Longitude);
-            var fortSearch = await client.SearchFort(closestPS.Id, closestPS.Latitude, closestPS.Longitude);
-            Logger.Write($"Farmed XP: {fortSearch.ExperienceAwarded}, Gems: { fortSearch.GemsAwarded}, Eggs: {fortSearch.PokemonDataEgg} Items: {StringUtils.GetSummedFriendlyNameOfItemAwardList(fortSearch.ItemsAwarded)}", LogLevel.Info, "LightBlue");
-            Logger.PushFormInfo("xpGained", fortSearch.ExperienceAwarded.ToString());
-            Logger.PushFormIntInfo("ps", 1);
-            if (stopRoutine) return;
-
-            await Task.Delay(2000 + r.Next(10) * 157);
-
-            if (stopRoutine) return;
-
-            await ExecuteCatchAllNearbyPokemons(client);
-
+            {
+                stopRoutine = false;
+                var update = await client.UpdatePlayerLocation(ForceLocationToMove.Item1, ForceLocationToMove.Item2);
+                ForceLocationToMove = null;                 
+                await ExecuteCatchAllNearbyPokemons(client);
+            }
 
         }
 

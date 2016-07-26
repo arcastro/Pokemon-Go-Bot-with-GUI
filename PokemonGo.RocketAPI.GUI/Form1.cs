@@ -443,6 +443,18 @@ namespace PokemonGo.RocketAPI.GUI
             UserSettings.Default.MoveSpeedFactor = (sender as TrackBar).Value;
         }
 
+        private void gMapControl1_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            //New point coord
+            double lat = 0.0;
+            double lng = 0.0;
+
+            //Getting real coordinates from mouse click
+            lat = gMapControl1.FromLocalToLatLng(e.X, e.Y).Lat;
+            lng = gMapControl1.FromLocalToLatLng(e.X, e.Y).Lng;
+            mainLogicThread.ForceMoveToLocation(lat, lng);
+        }
+
         private void timer1_Tick(object sender, EventArgs e)
         {
             ts = ts.Add(new TimeSpan(0, 0, 1));
