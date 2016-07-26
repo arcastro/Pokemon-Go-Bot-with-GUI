@@ -23,6 +23,7 @@ namespace PokemonGo.RocketAPI.GUI
         public bool AutoEvolve => UserSettings.Default.AutoEvolve;
         public bool AutoTransfer => UserSettings.Default.AutoTransfer;
         public bool TransferOnlyWeak => UserSettings.Default.TransferOnlyWeak;
+        public int MoveSpeedFactor => UserSettings.Default.MoveSpeedFactor;
 
         ICollection<KeyValuePair<ItemId, int>> ISettings.itemRecycleFilter
         {
@@ -35,6 +36,7 @@ namespace PokemonGo.RocketAPI.GUI
                     new KeyValuePair<ItemId, int>(ItemId.ItemGreatBall, 80),
                      new KeyValuePair<ItemId, int>(ItemId.ItemRevive, 50),
                      new KeyValuePair<ItemId, int>(ItemId.ItemPotion, 40),
+                     new KeyValuePair<ItemId, int>(ItemId.ItemRazzBerry, 50),
                 };
             }
 

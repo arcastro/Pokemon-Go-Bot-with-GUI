@@ -56,11 +56,13 @@ namespace PokemonGo.RocketAPI.Logic
                 {
                     var strongestPokemonCp = pokemon.Max(x => x.Cp);
                     var amountToSkip = pokemon.Count(x => x.Cp > strongestPokemonCp * 0.7);
+                    if (strongestPokemonCp < 700 && pokemon.Count() > 3 && amountToSkip > 3)
+                        amountToSkip = 3;
 
                     results.AddRange(pokemonList.Where(x => x.PokemonId == pokemon.Key && x.Favorite == 0)
                         .OrderByDescending(x => x.Cp)
                         .ThenBy(n => n.StaminaMax)
-                        .Skip(amountToSkip + 1)
+                        .Skip(amountToSkip)
                         .ToList());
 
                 }

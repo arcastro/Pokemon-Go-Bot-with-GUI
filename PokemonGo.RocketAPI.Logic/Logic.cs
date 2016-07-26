@@ -19,7 +19,10 @@ namespace PokemonGo.RocketAPI.Logic
 
         private Dictionary<string, FortData> currentPokeStops = new Dictionary<string, FortData>();
 
-        private FortData FortToMove;
+        private Queue<FortData> FortsToMove = new Queue<FortData>();
+        private FortData NextFortToMove;
+
+        Random r = new Random();
 
         private bool stopRoutine = false;
 
@@ -33,9 +36,10 @@ namespace PokemonGo.RocketAPI.Logic
         public void ForceMoveToPokestop(string id)
         {
             if (currentPokeStops.ContainsKey(id))
-            {
-                FortToMove = currentPokeStops[id];
-                stopRoutine = true;
+            {                
+                if (FortsToMove.Count == 0)
+                    stopRoutine = true;
+                FortsToMove.Enqueue(currentPokeStops[id]);
             }
         }
 
@@ -92,6 +96,8 @@ namespace PokemonGo.RocketAPI.Logic
         {
             var mapObjects = await client.GetMapObjects();
 
+            
+
             var pokeStops = mapObjects.MapCells.SelectMany(i => i.Forts).Where(i => i.Type == FortType.Checkpoint && i.CooldownCompleteTimestampMs < DateTime.UtcNow.ToUnixTime());
 
             var orderedPs = pokeStops.OrderBy(x => Math.Pow(Math.Pow((x.Longitude - _client._currentLng), 2) + Math.Pow((x.Latitude - _client._currentLat), 2), 0.5));
@@ -104,10 +110,9 @@ namespace PokemonGo.RocketAPI.Logic
             }
 
             FortData closestPS = null;
-            if (FortToMove != null)
+            if (FortsToMove != null && FortsToMove.Count > 0)
             {
-                closestPS = FortToMove;
-                FortToMove = null;
+                closestPS = FortsToMove.Dequeue();
                 stopRoutine = false;
             }
             else
@@ -120,7 +125,7 @@ namespace PokemonGo.RocketAPI.Logic
             Logger.PushFormIntInfo("ps", 1);
             if (stopRoutine) return;
 
-            await Task.Delay(3000);
+            await Task.Delay(2000 + r.Next(10) * 157);
 
             if (stopRoutine) return;
 
@@ -169,13 +174,16 @@ namespace PokemonGo.RocketAPI.Logic
 
                 var caught = caughtPokemonResponse.Status == CatchPokemonResponse.Types.CatchStatus.CatchSuccess;
 
-                Logger.Write(caught ? $"We caught a {pokemon.PokemonData.PokemonId} with CP {encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp} using a {pokeball}, xp: {caughtPokemonResponse.Scores.Xp?.Sum()}" : $"{pokemon.PokemonData.PokemonId} with CP {encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp} got away while using a {pokeball}...", LogLevel.Info, caught ? "Green" : "Yellow");
                 if (caught)
-                {
+                {                    
+                    Logger.Write($"We caught a {pokemon.PokemonData.PokemonId} with CP {encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp} using a {pokeball}, xp: {caughtPokemonResponse.Scores.Xp?.Sum()}", LogLevel.Info, caughtPokemonResponse.Scores.Xp.Any(x=> x == 500) ? "Orange" : "Green");
                     Logger.PushFormInfo("xpGained", caughtPokemonResponse.Scores.Xp?.Sum().ToString());
                     Logger.PushFormInfo("sdGained", caughtPokemonResponse.Scores.Stardust?.Sum().ToString());
                     Logger.PushFormIntInfo("pm", 1);
                 }
+                else
+                    Logger.Write($"{pokemon.PokemonData.PokemonId} with CP {encounterPokemonResponse?.WildPokemon?.PokemonData?.Cp} got away while using a {pokeball}...", LogLevel.Info, "Yellow");
+
                 Logger.PushMapObject("pm_rm", pokemon.PokemonData.PokemonId.ToString(), pokemon.Latitude, pokemon.Longitude, pokemon.EncounterId.ToString());
 
                 await Task.Delay(5000);

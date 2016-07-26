@@ -19,6 +19,7 @@ namespace PokemonGo.RocketAPI
         bool AutoEvolve { get; }
         bool AutoTransfer { get; }
         bool TransferOnlyWeak { get; }
+        int MoveSpeedFactor { get; }
 
         ICollection<KeyValuePair<AllEnum.ItemId, int>> itemRecycleFilter { get; set; }
     }

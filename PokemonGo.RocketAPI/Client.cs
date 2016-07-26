@@ -102,20 +102,23 @@ namespace PokemonGo.RocketAPI
                 var nextLat = _currentLat;
                 var nextLng = _currentLng;
                 bool delayed = false;
-                if (Math.Abs(nextLat - cLat) > 0.0001) //around 11 meters
+
+                double nextMoveSpeedFactor = _settings.MoveSpeedFactor + _settings.MoveSpeedFactor * r.NextDouble() * 0.2;
+
+                if (Math.Abs(nextLat - cLat) > 0.0001 * nextMoveSpeedFactor) //around 11 meters
                 {
-                    nextLat = cLat + ((cLat > lat) ? - 0.0001 : 0.0001);
+                    nextLat = cLat + ((cLat > lat) ? -0.0001 : 0.0001) * nextMoveSpeedFactor;
                     delayed = true;
                     await Task.Delay(3000);
                 }
-                if (Math.Abs(nextLng - cLng) > 0.00007)
+                if (Math.Abs(nextLng - cLng) > 0.00007 * nextMoveSpeedFactor)
                 {
-                    nextLng = cLng + ((cLng > lng) ? -0.00007 : 0.00007);
+                    nextLng = cLng + ((cLng > lng) ? -0.00007 : 0.00007) * nextMoveSpeedFactor;
                     if (!delayed)
                         await Task.Delay(3000);
                 }
-                nextLat = nextLat + r.NextDouble() * 0.0000005; //0.5m
-                nextLng = nextLng + r.NextDouble() * 0.0000001;
+                nextLat = nextLat + r.NextDouble() * 0.0000005 * nextMoveSpeedFactor; //0.5m
+                nextLng = nextLng + r.NextDouble() * 0.0000001 * nextMoveSpeedFactor;
 
                 this.SetCoordinates(nextLat, nextLng);
 

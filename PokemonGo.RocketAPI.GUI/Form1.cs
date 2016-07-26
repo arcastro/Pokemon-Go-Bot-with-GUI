@@ -75,6 +75,8 @@ namespace PokemonGo.RocketAPI.GUI
             chbAutoTransfer.Checked = startSettings.AutoTransfer;
             chbTransferWeak.Checked = startSettings.TransferOnlyWeak;
 
+            trackBar1.Value = UserSettings.Default.MoveSpeedFactor;
+
             LoadingSettings = false;
 
             gMapControl1.Bearing = 0;
@@ -357,6 +359,7 @@ namespace PokemonGo.RocketAPI.GUI
         private void button1_Click(object sender, EventArgs e)
         {
             (sender as Button).Enabled = false;
+            (sender as Button).BackColor = Color.LightGreen;
             groupBox1.Enabled = groupBox2.Enabled = groupBox4.Enabled = false;
             Logger.SetLogger(new FormLogger(LogLevel.Info));
             timer1.Start();
@@ -433,6 +436,11 @@ namespace PokemonGo.RocketAPI.GUI
         private void richTextBox1_LinkClicked(object sender, LinkClickedEventArgs e)
         {
             System.Diagnostics.Process.Start(e.LinkText);
+        }
+
+        private void trackBar1_Scroll(object sender, EventArgs e)
+        {
+            UserSettings.Default.MoveSpeedFactor = (sender as TrackBar).Value;
         }
 
         private void timer1_Tick(object sender, EventArgs e)

@@ -178,5 +178,17 @@ namespace PokemonGo.RocketAPI.GUI {
                 this["TransferOnlyWeak"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int MoveSpeedFactor {
+            get {
+                return ((int)(this["MoveSpeedFactor"]));
+            }
+            set {
+                this["MoveSpeedFactor"] = value;
+            }
+        }
     }
 }
