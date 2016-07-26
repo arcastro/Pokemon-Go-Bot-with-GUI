@@ -55,7 +55,12 @@ namespace PokemonGo.RocketAPI.Logic
             {
                 try
                 {                    
-                    await _client.SetServer();
+                    bool logged = await _client.SetServer();
+                    if (!logged)
+                    {
+                        Execute();
+                        return;
+                    }
                     Logger.PushFormInfo("wipe", "");
                     await _client.GetProfile();
                     if (_clientSettings.AutoEvolve)
@@ -112,6 +117,7 @@ namespace PokemonGo.RocketAPI.Logic
             if (FortsToMove != null && FortsToMove.Count > 0)
             {
                 closestPS = FortsToMove.Dequeue();
+                Logger.Write($"Pushing from Pokestop Queue! {FortsToMove.Count} in Queue.", LogLevel.Info, "IndianRed");                
                 stopRoutine = false;
             }
             else

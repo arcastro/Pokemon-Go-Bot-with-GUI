@@ -143,20 +143,28 @@ namespace PokemonGo.RocketAPI
             return updateResponse;
         }
 
-        public async Task SetServer()
-        {            
-            var serverRequest = RequestBuilder.GetInitialRequest(_accessToken, _authType, _currentLat, _currentLng, 10 + r.NextDouble() * 76,
-                RequestType.GET_PLAYER, RequestType.GET_HATCHED_OBJECTS, RequestType.GET_INVENTORY,
-                RequestType.CHECK_AWARDED_BADGES, RequestType.DOWNLOAD_SETTINGS);
-            var serverResponse = await _httpClient.PostProto<Request>(Resources.RpcUrl, serverRequest);
-            _unknownAuth = new Request.Types.UnknownAuth()
+        public async Task<bool> SetServer()
+        {
+            try
             {
-                Unknown71 = serverResponse.Auth.Unknown71,
-                Timestamp = serverResponse.Auth.Timestamp,
-                Unknown73 = serverResponse.Auth.Unknown73,
-            };
+                var serverRequest = RequestBuilder.GetInitialRequest(_accessToken, _authType, _currentLat, _currentLng, 10 + r.NextDouble() * 76,
+                    RequestType.GET_PLAYER, RequestType.GET_HATCHED_OBJECTS, RequestType.GET_INVENTORY,
+                    RequestType.CHECK_AWARDED_BADGES, RequestType.DOWNLOAD_SETTINGS);
+                var serverResponse = await _httpClient.PostProto<Request>(Resources.RpcUrl, serverRequest);
+                _unknownAuth = new Request.Types.UnknownAuth()
+                {
+                    Unknown71 = serverResponse.Auth.Unknown71,
+                    Timestamp = serverResponse.Auth.Timestamp,
+                    Unknown73 = serverResponse.Auth.Unknown73,
+                };
 
-            _apiUrl = serverResponse.ApiUrl;
+                _apiUrl = serverResponse.ApiUrl;
+            }
+            catch
+            {
+                return false;
+            }
+            return true;
         }
 
         public async Task<GetPlayerResponse> GetProfile()
