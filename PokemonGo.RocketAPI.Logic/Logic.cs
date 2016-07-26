@@ -48,7 +48,7 @@ namespace PokemonGo.RocketAPI.Logic
             _client.InterruptMovement = true;
             FortsToMove.Clear();
             ForceLocationToMove = Tuple.Create(lat, lng);
-            Logger.Write($"Force moving to => Lat: {lat} - Lng: {lng}", LogLevel.Info, "Gold");
+            Logger.Write($"Force movement pushed to => Lat: {lat} - Lng: {lng}", LogLevel.Info, "Gold");
         }
 
         public async void Execute()
@@ -150,9 +150,12 @@ namespace PokemonGo.RocketAPI.Logic
             else
             {
                 stopRoutine = false;
+                Logger.Write($"Force moving to => Lat: {ForceLocationToMove.Item1} - Lng: {ForceLocationToMove.Item2}", LogLevel.Info, "Gold");
                 var update = await client.UpdatePlayerLocation(ForceLocationToMove.Item1, ForceLocationToMove.Item2);
+                Logger.Write("Force movement done! Start catching pokemons there.", LogLevel.Info, "Gold");
                 ForceLocationToMove = null;                 
                 await ExecuteCatchAllNearbyPokemons(client);
+                Logger.Write("Force movement + catching => DONE!", LogLevel.Info, "Gold");
             }
 
         }
