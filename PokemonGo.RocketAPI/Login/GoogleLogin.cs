@@ -24,6 +24,11 @@ namespace PokemonGo.RocketAPI.Login
             var deviceCodeResponse = await GetDeviceCode(settings);
             Logger.Write("Please visit " + deviceCodeResponse.verification_url + " and enter " + deviceCodeResponse.user_code, LogLevel.None);
 
+            Thread thread = new Thread(() => System.Windows.Forms.Clipboard.SetText(deviceCodeResponse.user_code));
+            thread.SetApartmentState(ApartmentState.STA); //Set the thread to STA
+            thread.Start();
+            thread.Join();
+
             //Poll until user submitted code..
             TokenResponseModel tokenResponse;
             do

@@ -92,10 +92,12 @@ namespace PokemonGo.RocketAPI
             _authType = AuthType.Ptc;
         }
 
-        public async Task<PlayerUpdateResponse> UpdatePlayerLocation(double lat, double lng)
+        public async Task<PlayerUpdateResponse> UpdatePlayerLocation(double lat, double lng, bool forceMove = false)
         {
             double cLat = _currentLat;
             double cLng = _currentLng;
+            if (forceMove)
+                InterruptMovement = false;
             PlayerUpdateResponse updateResponse = null;
             do
             {

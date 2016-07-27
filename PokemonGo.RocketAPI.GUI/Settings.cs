@@ -32,10 +32,11 @@ namespace PokemonGo.RocketAPI.GUI
                 //Type and amount to keep
                 return new[]
                 {
-                    new KeyValuePair<ItemId, int>(ItemId.ItemPokeBall, 20),
-                    new KeyValuePair<ItemId, int>(ItemId.ItemGreatBall, 80),
-                     new KeyValuePair<ItemId, int>(ItemId.ItemRevive, 50),
-                     new KeyValuePair<ItemId, int>(ItemId.ItemPotion, 40),
+                    new KeyValuePair<ItemId, int>(ItemId.ItemPokeBall, 5),
+                    new KeyValuePair<ItemId, int>(ItemId.ItemGreatBall, 30),
+                     new KeyValuePair<ItemId, int>(ItemId.ItemRevive, 40),
+                     new KeyValuePair<ItemId, int>(ItemId.ItemPotion, 10),
+                     new KeyValuePair<ItemId, int>(ItemId.ItemSuperPotion, 60),
                      new KeyValuePair<ItemId, int>(ItemId.ItemRazzBerry, 50),
                 };
             }

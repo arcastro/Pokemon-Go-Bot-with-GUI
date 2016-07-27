@@ -77,7 +77,7 @@ namespace PokemonGo.RocketAPI.Logic
                     if (_clientSettings.AutoTransfer)
                         await TransferDuplicatePokemon(_clientSettings.TransferOnlyWeak,true);
                     await RecycleItems();
-                    await RepeatAction(25, async () => await ExecuteFarmingPokestopsAndPokemons(_client));
+                    await RepeatAction(10 + r.Next(3), async () => await ExecuteFarmingPokestopsAndPokemons(_client));
 
                     /*
                 * Example calls below
@@ -151,7 +151,7 @@ namespace PokemonGo.RocketAPI.Logic
             {
                 stopRoutine = false;
                 Logger.Write($"Force moving to => Lat: {ForceLocationToMove.Item1} - Lng: {ForceLocationToMove.Item2}", LogLevel.Info, "Gold");
-                var update = await client.UpdatePlayerLocation(ForceLocationToMove.Item1, ForceLocationToMove.Item2);
+                var update = await client.UpdatePlayerLocation(ForceLocationToMove.Item1, ForceLocationToMove.Item2, true);
                 Logger.Write("Force movement done! Start catching pokemons there.", LogLevel.Info, "Gold");
                 ForceLocationToMove = null;                 
                 await ExecuteCatchAllNearbyPokemons(client);

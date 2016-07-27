@@ -31,13 +31,17 @@ namespace PokemonGo.RocketAPI.GUI
 
         Logic.Logic mainLogicThread;
 
-        private int ExpGained = 0;
-        private int StarDust = 0;
-        private int PokestopsFarmed = 0;
-        private int PokemonsFarmed = 0;
+        private int expGained = 0;
+        private int starDust = 0;
+        private int pokestopsFarmed = 0;
+        private int pokemonsFarmed = 0;
 
-        bool LoadingSettings = false;
-        bool FormBeingClosed = false;
+        bool loadingSettings = false;
+        bool formBeingClosed = false;
+        bool gotNewCoord = false;
+        bool moveRequired = false;
+        private double _lat, _lng;
+        private double _latStep = 0, _lngStep = 0;
 
         GMarkerGoogle playerMarker;
 
@@ -52,7 +56,7 @@ namespace PokemonGo.RocketAPI.GUI
         {
             gameForm = this;
 
-            LoadingSettings = true;
+            loadingSettings = true;
             var startSettings = new Settings();
 
             comboBox1.DataSource = Enum.GetValues(typeof(AuthType));
@@ -77,7 +81,7 @@ namespace PokemonGo.RocketAPI.GUI
 
             trackBar1.Value = UserSettings.Default.MoveSpeedFactor;
 
-            LoadingSettings = false;
+            loadingSettings = false;
 
             gMapControl1.Bearing = 0;
 
@@ -123,6 +127,7 @@ namespace PokemonGo.RocketAPI.GUI
             GMap.NET.MapProviders.GMapProvider.WebProxy.Credentials = System.Net.CredentialCache.DefaultCredentials;
 
             SetMapObjects();
+            MovePlayer();
         }
 
         public void PushNewRow(string rowText, Color rowColor)
@@ -138,17 +143,17 @@ namespace PokemonGo.RocketAPI.GUI
             switch (infoType)
             {
                 case "ps":
-                    PokestopsFarmed += amout;
+                    pokestopsFarmed += amout;
                     Invoke(new Action(() =>
                     {
-                        tbPokestops.Text = PokestopsFarmed.ToString();
+                        tbPokestops.Text = pokestopsFarmed.ToString();
                     }));
                     break;
                 case "pm":
-                    PokemonsFarmed += amout;
+                    pokemonsFarmed += amout;
                     Invoke(new Action(() =>
                     {
-                        tbPokemons.Text = PokemonsFarmed.ToString();
+                        tbPokemons.Text = pokemonsFarmed.ToString();
                     }));
                     break;
                 default:
@@ -172,22 +177,22 @@ namespace PokemonGo.RocketAPI.GUI
                     break;
                 case "xpGained":
                     int.TryParse(info, out gained);
-                    ExpGained += gained;
+                    expGained += gained;
                     Invoke(new Action(() =>
                     {
-                        xpBox.Text = ExpGained.ToString();
+                        xpBox.Text = expGained.ToString();
                     }));
                     break;
                 case "sdGained":
                     int.TryParse(info, out gained);
-                    StarDust += int.Parse(info);
+                    starDust += int.Parse(info);
                     Invoke(new Action(() =>
                     {
-                        sdBox.Text = StarDust.ToString();
+                        sdBox.Text = starDust.ToString();
                     }));
                     break;
                 case "wipe":
-                    StarDust = 0;
+                    starDust = 0;
                     Invoke(new Action(() =>
                     {
                         sdBox.Text = "0";
@@ -219,7 +224,7 @@ namespace PokemonGo.RocketAPI.GUI
 
         private async void SetMapObjects()
         {
-            while (!FormBeingClosed)
+            while (!formBeingClosed)
             {
                 if (qMap.Count > 0)
                 {
@@ -253,6 +258,30 @@ namespace PokemonGo.RocketAPI.GUI
 
                 }
                 await Task.Delay(10);
+            }
+        }
+
+        private async void MovePlayer()
+        {
+            int delay = 25;
+            while (!formBeingClosed)
+            {
+                if (moveRequired)
+                {
+                    if (gotNewCoord)
+                    {
+                        _latStep = (Lat - _lat) / (2000 / delay);
+                        _lngStep = (Lng - _lng) / (2000 / delay);
+                        gotNewCoord = false;
+                    }
+
+                    _lat += _latStep;
+                    _lng += _lngStep;
+                    playerMarker.Position = new PointLatLng(_lat, _lng);
+                    if (Math.Abs(_lat - Lat) < 0.000000001 && Math.Abs(_lng - Lng) < 0.000000001)
+                        moveRequired = false;                       
+                }
+                await Task.Delay(delay);
             }
         }
 
@@ -298,14 +327,18 @@ namespace PokemonGo.RocketAPI.GUI
             nfi.NumberDecimalSeparator = ".";
             coordsLinkLb.Text = $"{Lat.ToString(nfi)}, {Lng.ToString(nfi)}";
 
+            moveRequired = true;
+
             if (playerMarker == null)
             {
                 playerMarker = new GMarkerGoogle(new PointLatLng(Lat, Lng), Properties.Resources.trainer.ResizeImage(30, 50));
+                _lat = Lat;
+                _lng = Lng;
                 playerOverlay.Markers.Add(playerMarker);
             }
             else
             {
-                playerMarker.Position = new PointLatLng(Lat, Lng);
+                gotNewCoord = true;                
                 UserSettings.Default.DefaultLatitude = Lat;
                 UserSettings.Default.DefaultLongitude = Lng;
             }            
@@ -318,7 +351,7 @@ namespace PokemonGo.RocketAPI.GUI
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            FormBeingClosed = true;
+            formBeingClosed = true;
             UserSettings.Default.Save();
 
             mainTaskCancel?.Cancel();
@@ -327,7 +360,7 @@ namespace PokemonGo.RocketAPI.GUI
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             var cb = (sender as ComboBox);
-            if (cb.SelectedIndex > -1 && !LoadingSettings)
+            if (cb.SelectedIndex > -1 && !loadingSettings)
             {
                 AuthType auth;
                 Enum.TryParse((sender as ComboBox).SelectedValue.ToString(), out auth);
