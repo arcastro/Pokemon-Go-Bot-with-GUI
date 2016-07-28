@@ -56,7 +56,21 @@ namespace PokemonGo.RocketAPI.Logic
             Logger.Write($"Starting Execute on login server: {_clientSettings.AuthType}", LogLevel.Info);
 
             if (_clientSettings.AuthType == AuthType.Ptc)
-                await _client.DoPtcLogin(_clientSettings.PtcUsername, _clientSettings.PtcPassword);
+            {
+                bool authed = false;
+                while (!authed)
+                {
+                    try
+                    {
+                        await _client.DoPtcLogin(_clientSettings.PtcUsername, _clientSettings.PtcPassword);
+                        authed = true;
+                    }
+                    catch
+                    {
+                        authed = false;
+                    }
+                }
+            }
             else if (_clientSettings.AuthType == AuthType.Google)
                 await _client.DoGoogleLogin(_clientSettings);
 
