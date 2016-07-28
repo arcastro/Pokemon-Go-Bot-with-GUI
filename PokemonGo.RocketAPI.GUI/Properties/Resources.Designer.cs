@@ -1573,6 +1573,16 @@ namespace PokemonGo.RocketAPI.GUI.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap force_move {
+            get {
+                object obj = ResourceManager.GetObject("force_move", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap Harmony_large {
             get {
                 object obj = ResourceManager.GetObject("Harmony_large", resourceCulture);
@@ -1593,9 +1603,9 @@ namespace PokemonGo.RocketAPI.GUI.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap PstopLured {
+        internal static System.Drawing.Bitmap pstop_lured {
             get {
-                object obj = ResourceManager.GetObject("PstopLured", resourceCulture);
+                object obj = ResourceManager.GetObject("pstop_lured", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

@@ -113,9 +113,6 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\Pstop.png" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\PstopLured.png" />
   </ItemGroup>
   <ItemGroup>
@@ -579,6 +576,15 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\trainer.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\force_move.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\pstop.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\pstop_lured.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
