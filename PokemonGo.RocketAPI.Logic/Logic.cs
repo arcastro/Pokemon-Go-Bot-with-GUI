@@ -153,6 +153,7 @@ namespace PokemonGo.RocketAPI.Logic
                 Logger.Write($"Force moving to => Lat: {ForceLocationToMove.Item1} - Lng: {ForceLocationToMove.Item2}", LogLevel.Info, "Gold");
                 var update = await client.UpdatePlayerLocation(ForceLocationToMove.Item1, ForceLocationToMove.Item2, true);
                 Logger.Write("Force movement done! Start catching pokemons there.", LogLevel.Info, "Gold");
+                Logger.PushFormInfo("fm_rm", "");
                 ForceLocationToMove = null;                 
                 await ExecuteCatchAllNearbyPokemons(client);
                 Logger.Write("Force movement + catching => DONE!", LogLevel.Info, "Gold");

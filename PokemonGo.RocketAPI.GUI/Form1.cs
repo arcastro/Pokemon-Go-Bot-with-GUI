@@ -43,7 +43,10 @@ namespace PokemonGo.RocketAPI.GUI
         private double _lat, _lng;
         private double _latStep = 0, _lngStep = 0;
 
+        Settings startSettings;
+
         GMarkerGoogle playerMarker;
+        GMarkerGoogle forceMoveMarker;
 
         Task mainTask;
         CancellationTokenSource mainTaskCancel;
@@ -57,14 +60,13 @@ namespace PokemonGo.RocketAPI.GUI
             gameForm = this;
 
             loadingSettings = true;
-            var startSettings = new Settings();
+            startSettings = new Settings();
 
             comboBox1.DataSource = Enum.GetValues(typeof(AuthType));
 
             comboBox1.SelectedItem = startSettings.AuthType;
 
-            tbLat.Text = startSettings.DefaultLatitude.ToString();
-            tbLng.Text = startSettings.DefaultLongitude.ToString();
+            updateLatLngTextBox();
 
             tbLogin.Text = startSettings.PtcUsername;
             tbPswd.Text = startSettings.PtcPassword;
@@ -128,6 +130,12 @@ namespace PokemonGo.RocketAPI.GUI
 
             SetMapObjects();
             MovePlayer();
+        }
+
+        private void updateLatLngTextBox()
+        {
+            tbLat.Text = startSettings.DefaultLatitude.ToString();
+            tbLng.Text = startSettings.DefaultLongitude.ToString();
         }
 
         public void PushNewRow(string rowText, Color rowColor)
@@ -210,6 +218,13 @@ namespace PokemonGo.RocketAPI.GUI
                         UpdateCoords();
                     }));
                     break;
+                case "fm_rm":
+                    if (forceMoveMarker != null)
+                    {
+                        playerOverlay.Markers.Remove(forceMoveMarker);
+                        forceMoveMarker = null;
+                    }
+                    break;
             }
         }
 
@@ -234,7 +249,7 @@ namespace PokemonGo.RocketAPI.GUI
                         case "ps":
                             if (!mapMarkers.ContainsKey(newMapObj.uid))
                             {
-                                GMarkerGoogle marker = new GMarkerGoogle(new PointLatLng(newMapObj.lat, newMapObj.lng), newMapObj.oName != "lured" ? Properties.Resources.Pstop : Properties.Resources.PstopLured);
+                                GMarkerGoogle marker = new GMarkerGoogle(new PointLatLng(newMapObj.lat, newMapObj.lng), newMapObj.oName != "lured" ? Properties.Resources.Pstop : Properties.Resources.pstop_lured);
                                 marker.ToolTipText = "PokeStop";
                                 pokeStopsOverlay.Markers.Add(marker);
                                 mapMarkers.Add(newMapObj.uid, marker);
@@ -485,7 +500,36 @@ namespace PokemonGo.RocketAPI.GUI
             //Getting real coordinates from mouse click
             lat = gMapControl1.FromLocalToLatLng(e.X, e.Y).Lat;
             lng = gMapControl1.FromLocalToLatLng(e.X, e.Y).Lng;
-            mainLogicThread.ForceMoveToLocation(lat, lng);
+
+            if (mainLogicThread != null)
+            {
+                if (forceMoveMarker == null)
+                {
+                    forceMoveMarker = new GMarkerGoogle(new PointLatLng(lat, lng), Properties.Resources.force_move);
+                    playerOverlay.Markers.Add(forceMoveMarker);
+                }
+                else
+                {
+                    forceMoveMarker.Position = new PointLatLng(lat, lng);
+                }
+
+                mainLogicThread.ForceMoveToLocation(lat, lng);
+            }
+            else
+            {
+                UserSettings.Default.DefaultLatitude = lat;
+                UserSettings.Default.DefaultLongitude = lng;
+                if (playerMarker == null)
+                {
+                    playerMarker = new GMarkerGoogle(new PointLatLng(lat, lng), Properties.Resources.trainer.ResizeImage(30, 50));
+                    playerOverlay.Markers.Add(playerMarker);
+                }
+                else
+                {
+                    playerMarker.Position = new PointLatLng(lat, lng);
+                }
+                updateLatLngTextBox();
+            }
         }
 
         private void timer1_Tick(object sender, EventArgs e)
